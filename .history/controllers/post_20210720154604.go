@@ -2,23 +2,22 @@ package controllers
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"server-with-firebase-go/entities"
-	"server-with-firebase-go/repositories"
-	"strconv"
+	"server-with-firebase-go/errors"
+	"server-with-firebase-go/services"
 )
 
 var (
-	repo = repositories.NewPostRepository()
+	postService = services.NewPostService()
 )
 
 func GetPost(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-type", "application/json")
-	posts, err := repo.FindAll()
+	posts, err := postService.FindAll()
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(`{"error": "Error al obtener la lista de publicaciones"}`))
+		json.NewEncoder(rw).Encode(errors.ServiceError{Message: "Error al obtener la lista de publicaciones"})
 		return
 	}
 	rw.WriteHeader(http.StatusOK)
@@ -31,12 +30,17 @@ func CreatePost(rw http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(`{"error": "Error unmarshaling the request"}`))
+		json.NewEncoder(rw).Encode(errors.ServiceError{Message: "Error al obtener al decodificar la petición"})
 		return
 	}
 
-	post.Id = strconv.Itoa(rand.Int())
-	repo.Save(&post)
+	err = postService.Validate(&post)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(rw).Encode(errors.ServiceError{Message: err.Error()})
+		return
+	}
+	postService.Create(&post)
 	rw.WriteHeader(http.StatusCreated)
 	json.NewEncoder(rw).Encode(post)
 }

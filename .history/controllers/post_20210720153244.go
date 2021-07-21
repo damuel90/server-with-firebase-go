@@ -1,0 +1,45 @@
+package controllers
+
+import (
+	"encoding/json"
+	"net/http"
+	"server-with-firebase-go/entities"
+	"server-with-firebase-go/services"
+)
+
+var (
+	postService = services.NewPostService()
+)
+
+func GetPost(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-type", "application/json")
+	posts, err := postService.FindAll()
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(`{"error": "Error al obtener la lista de publicaciones"}`))
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
+	json.NewEncoder(rw).Encode(posts)
+}
+
+func CreatePost(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-type", "application/json")
+	var post entities.Post
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(`{"error": "Error unmarshaling the request"}`))
+		return
+	}
+
+	err = postService.Validate(&post)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(`{"error": "Error unmarshaling the request"}`))
+		return
+	}
+	postService.Create(&post)
+	rw.WriteHeader(http.StatusCreated)
+	json.NewEncoder(rw).Encode(post)
+}

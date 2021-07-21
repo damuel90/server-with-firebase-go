@@ -5,16 +5,12 @@ import (
 	"log"
 	"net/http"
 	"server-with-firebase-go/controllers"
-	"server-with-firebase-go/repositories"
 	"server-with-firebase-go/routers"
-	"server-with-firebase-go/services"
 )
 
 var (
 	muxRouter      = routers.NewMuxRouter()
-	postRepository = repositories.NewFirestoreRepository()
-	postService    = services.NewPostService(postRepository)
-	postController = controllers.NewPostController(postService)
+	postController = controllers.NewPostController()
 )
 
 func main() {
